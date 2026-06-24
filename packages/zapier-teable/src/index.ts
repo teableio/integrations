@@ -11,6 +11,7 @@ import newOrUpdatedRecord from './triggers/new_or_updated_record';
 
 import createRecord from './creates/create_record';
 import updateRecord from './creates/update_record';
+import createOrUpdateRecord from './creates/create_or_update_record';
 
 import findRecord from './searches/find_record';
 
@@ -72,6 +73,7 @@ const App = {
   creates: {
     create_record: createRecord,
     update_record: updateRecord,
+    create_or_update_record: createOrUpdateRecord,
   },
 
   searches: {

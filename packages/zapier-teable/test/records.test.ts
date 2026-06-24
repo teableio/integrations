@@ -39,3 +39,34 @@ describeTable('create / find / update round-trip', () => {
     expect(updated.fields[fieldName]).toBe(`${marker}-updated`);
   });
 });
+
+// Live upsert round-trip: the same match value should CREATE on the first run and
+// UPDATE that same record (not duplicate it) on the second.
+// WARNING: this writes a real record. Point TEABLE_TABLE_ID at a scratch table.
+describeTable('create_or_update_record (upsert) round-trip', () => {
+  const tableId = process.env.TEABLE_TABLE_ID;
+  const fieldName = process.env.TEABLE_FIELD_NAME || 'Name';
+  const marker = `zapier-upsert-${process.env.JEST_WORKER_ID || '1'}`;
+
+  let upsertId: string;
+
+  it('creates a new record when no match exists', async () => {
+    const created = await appTester(App.creates.create_or_update_record.operation.perform, {
+      authData: authData(),
+      inputData: { tableId, matchField: fieldName, [`fields__${fieldName}`]: marker },
+    });
+    expect(created).toHaveProperty('id');
+    expect(created.fields[fieldName]).toBe(marker);
+    upsertId = created.id;
+  });
+
+  it('updates the same record (no duplicate) when the match value already exists', async () => {
+    const updated = await appTester(App.creates.create_or_update_record.operation.perform, {
+      authData: authData(),
+      inputData: { tableId, matchField: fieldName, [`fields__${fieldName}`]: marker },
+    });
+    // Same match value → same record id, not a new one.
+    expect(updated.id).toBe(upsertId);
+    expect(updated.fields[fieldName]).toBe(marker);
+  });
+});

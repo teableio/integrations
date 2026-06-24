@@ -87,3 +87,57 @@ describe('lib/fields collectFieldsObject', () => {
     ).toEqual({ D: 0 });
   });
 });
+
+// create_or_update_record decides "create only" vs "search then upsert" purely from
+// the submitted inputs: the match value is the collected field value under the chosen
+// matchField name (matchField's dropdown is fields.id.name, so its value IS the field
+// name, the same key collectFieldsObject uses). An undefined match value ⇒ create only.
+// This is the exact predicate the action's perform() uses, exercised without network.
+const resolveMatchValue = (
+  inputData: Record<string, unknown>,
+): { matchValue: unknown; createOnly: boolean } => {
+  const fields = collectFieldsObject(inputData);
+  const matchField = inputData.matchField as string | undefined;
+  const matchValue = matchField ? fields[matchField] : undefined;
+  return { matchValue, createOnly: !matchField || matchValue === undefined };
+};
+
+describe('create_or_update_record match-value resolution', () => {
+  it('resolves the match value from the field input keyed by the match field name', () => {
+    const { matchValue, createOnly } = resolveMatchValue({
+      tableId: 'tbl1',
+      matchField: 'Email',
+      fields__Email: 'a@b.com',
+      fields__Name: 'Acme',
+    });
+    expect(matchValue).toBe('a@b.com');
+    expect(createOnly).toBe(false);
+  });
+
+  it('falls back to create-only when the match value is empty', () => {
+    // collectFieldsObject drops '' so the match key is absent ⇒ no match value.
+    const { matchValue, createOnly } = resolveMatchValue({
+      tableId: 'tbl1',
+      matchField: 'Email',
+      fields__Email: '',
+      fields__Name: 'Acme',
+    });
+    expect(matchValue).toBeUndefined();
+    expect(createOnly).toBe(true);
+  });
+
+  it('falls back to create-only when no match field is chosen', () => {
+    const { createOnly } = resolveMatchValue({ tableId: 'tbl1', fields__Name: 'Acme' });
+    expect(createOnly).toBe(true);
+  });
+
+  it('treats a falsy-but-present match value (0) as a real match, not create-only', () => {
+    const { matchValue, createOnly } = resolveMatchValue({
+      tableId: 'tbl1',
+      matchField: 'Count',
+      fields__Count: 0,
+    });
+    expect(matchValue).toBe(0);
+    expect(createOnly).toBe(false);
+  });
+});

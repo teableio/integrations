@@ -12,6 +12,7 @@ points at **Teable's** API and adds an **instance URL** field (Teable is self-ho
 | Trigger | New or Updated Record | same, dedupe by `id@lastModifiedTime` |
 | Action | Create Record | `POST /api/table/{tableId}/record` |
 | Action | Update Record | `PATCH /api/table/{tableId}/record/{recordId}` |
+| Action | Create or Update Record | find via `GET …/record?filterByTql`, then `PATCH …/record/{id}` or `POST …/record` |
 | Search | Find Record | `GET …/record?filterByTql={Field} = "value"` |
 | (hidden) | Bases / Tables / Fields | power the dropdowns |
 
