@@ -1,0 +1,20 @@
+{
+  "name": "zapier-teable",
+  "version": "1.0.0",
+  "description": "Teable integration for Zapier — list/search, create, update and watch records in a Teable base.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "test": "jest --testTimeout 10000"
+  },
+  "engines": {
+    "node": ">=18",
+    "npm": ">=5.6.0"
+  },
+  "dependencies": {
+    "zapier-platform-core": "19.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
