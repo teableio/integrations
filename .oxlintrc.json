@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "import", "node", "jest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "import/default": "off",
+    "jest/no-conditional-expect": "off",
+    "jest/require-to-throw-message": "off"
+  },
+  "env": {
+    "node": true,
+    "es2024": true,
+    "jest": true
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/build/**",
+    "**/node_modules/**",
+    "**/*.d.ts"
+  ]
+}

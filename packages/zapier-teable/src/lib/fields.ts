@@ -62,7 +62,7 @@ const dynamicRecordFields = async (z: ZObject, bundle: Bundle): Promise<ZapierIn
 
 // Collect `fields__<name>` inputs back into a Teable `fields` object.
 const collectFieldsObject = (
-  inputData: Record<string, unknown> | null | undefined
+  inputData: Record<string, unknown> | null | undefined,
 ): Record<string, unknown> => {
   const fields: Record<string, unknown> = {};
   Object.keys(inputData || {}).forEach((key) => {

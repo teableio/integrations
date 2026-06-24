@@ -23,7 +23,7 @@ const flatten = (record: IRecord): FlatRecord => ({
   createdTime: record.createdTime,
   lastModifiedTime: record.lastModifiedTime,
   fields: record.fields || {},
-  ...(record.fields || {}),
+  ...record.fields,
 });
 
 interface ListRecordsOptions {
@@ -37,7 +37,7 @@ interface ListRecordsOptions {
 const listRecords = async (
   z: ZObject,
   bundle: Bundle,
-  { tableId, viewId, take = 100 }: ListRecordsOptions
+  { tableId, viewId, take = 100 }: ListRecordsOptions,
 ): Promise<IRecord[]> => {
   const params: Record<string, unknown> = { take, fieldKeyType: 'name' };
   if (viewId) params.viewId = viewId;

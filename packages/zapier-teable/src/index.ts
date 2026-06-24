@@ -1,9 +1,5 @@
 import { version as platformVersion } from 'zapier-platform-core';
-import type {
-  ZObject,
-  HttpRequestOptionsWithUrl,
-  HttpResponse,
-} from 'zapier-platform-core';
+import type { ZObject, HttpRequestOptionsWithUrl, HttpResponse } from 'zapier-platform-core';
 
 import authentication from './authentication';
 
@@ -28,7 +24,7 @@ const { version } = require('../package.json');
 const includeBearerToken = (
   request: HttpRequestOptionsWithUrl,
   z: ZObject,
-  bundle: { authData?: { access_token?: string } }
+  bundle: { authData?: { access_token?: string } },
 ): HttpRequestOptionsWithUrl => {
   if (bundle.authData && bundle.authData.access_token) {
     request.headers = request.headers || {};

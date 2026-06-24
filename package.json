@@ -1,0 +1,20 @@
+{
+  "name": "@teable/integrations",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared root dev tooling for the Teable integrations multi-package repo.",
+  "scripts": {
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt '**/*.{js,ts,jsx,tsx}'",
+    "format:check": "oxfmt --check '**/*.{js,ts,jsx,tsx}'",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.1.0",
+    "@commitlint/config-conventional": "^21.1.0",
+    "lefthook": "^2.1.9",
+    "oxfmt": "^0.56.0",
+    "oxlint": "^1.71.0"
+  }
+}

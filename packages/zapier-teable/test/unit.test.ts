@@ -77,13 +77,13 @@ describe('lib/records flatten', () => {
 describe('lib/fields collectFieldsObject', () => {
   it('keeps only fields__ keys and strips the prefix', () => {
     expect(
-      collectFieldsObject({ tableId: 'tbl1', fields__Name: 'Acme', fields__Status: 'open' })
+      collectFieldsObject({ tableId: 'tbl1', fields__Name: 'Acme', fields__Status: 'open' }),
     ).toEqual({ Name: 'Acme', Status: 'open' });
   });
 
   it('drops empty/null/undefined values', () => {
     expect(
-      collectFieldsObject({ fields__A: '', fields__B: null, fields__C: undefined, fields__D: 0 })
+      collectFieldsObject({ fields__A: '', fields__B: null, fields__C: undefined, fields__D: 0 }),
     ).toEqual({ D: 0 });
   });
 });
