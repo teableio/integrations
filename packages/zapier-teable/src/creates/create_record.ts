@@ -1,13 +1,14 @@
-'use strict';
-
-const { apiUrl } = require('../lib/client');
-const { flatten } = require('../lib/records');
-const { dynamicRecordFields, collectFieldsObject } = require('../lib/fields');
+import type { ZObject, Bundle } from 'zapier-platform-core';
+import type { IRecordsVo } from '@teable/openapi';
+import { apiUrl } from '../lib/client';
+import { flatten } from '../lib/records';
+import type { FlatRecord } from '../lib/records';
+import { dynamicRecordFields, collectFieldsObject } from '../lib/fields';
 
 // POST /api/table/{tableId}/record  body: { fieldKeyType, typecast, records: [{ fields }] }
-const perform = async (z, bundle) => {
+const perform = async (z: ZObject, bundle: Bundle): Promise<FlatRecord> => {
   const fields = collectFieldsObject(bundle.inputData);
-  const response = await z.request({
+  const response = await z.request<IRecordsVo>({
     method: 'POST',
     url: apiUrl(bundle, `/table/${bundle.inputData.tableId}/record`),
     body: {
@@ -17,10 +18,10 @@ const perform = async (z, bundle) => {
     },
   });
   const created = (response.data && response.data.records && response.data.records[0]) || {};
-  return flatten(created);
+  return flatten(created as IRecordsVo['records'][number]);
 };
 
-module.exports = {
+export default {
   key: 'create_record',
   noun: 'Record',
   display: {

@@ -1,6 +1,4 @@
-'use strict';
-
-const { App, appTester, authData, describeTable } = require('./helpers');
+import { App, appTester, authData, describeTable } from './helpers';
 
 // Live write round-trip: create → find → update, against a real table.
 // WARNING: this writes a real record. Point TEABLE_TABLE_ID at a scratch table.
@@ -11,7 +9,7 @@ describeTable('create / find / update round-trip', () => {
   // some sandboxes — use a fixed-ish token plus the jest worker id.
   const marker = `zapier-test-${process.env.JEST_WORKER_ID || '1'}`;
 
-  let createdId;
+  let createdId: string;
 
   it('create_record: creates a record and flattens the response', async () => {
     const created = await appTester(App.creates.create_record.operation.perform, {

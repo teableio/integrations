@@ -1,12 +1,11 @@
-'use strict';
-
 // Pure unit tests for the helper libs. These need NO credentials and NO network,
 // so they always run (and are safe in CI). Logic-only coverage of the bits most
 // likely to break: URL building, record flattening, field collection.
 
-const { apiBase, apiUrl } = require('../lib/client');
-const { flatten, byTimeDesc } = require('../lib/records');
-const { collectFieldsObject } = require('../lib/fields');
+import { apiBase, apiUrl } from '../src/lib/client';
+import { flatten, byTimeDesc } from '../src/lib/records';
+import type { FlatRecord } from '../src/lib/records';
+import { collectFieldsObject } from '../src/lib/fields';
 
 describe('lib/client apiBase (driven by TEABLE_INSTANCE_URL)', () => {
   const ORIGINAL = process.env.TEABLE_INSTANCE_URL;
@@ -55,7 +54,7 @@ describe('lib/records flatten', () => {
   });
 
   it('handles a record with no fields object', () => {
-    const flat = flatten({ id: 'rec2' });
+    const flat = flatten({ id: 'rec2' } as Parameters<typeof flatten>[0]);
     expect(flat.id).toBe('rec2');
     expect(flat.fields).toEqual({});
   });
@@ -65,7 +64,7 @@ describe('lib/records flatten', () => {
       { createdTime: '2026-01-01T00:00:00.000Z' },
       { createdTime: '2026-03-01T00:00:00.000Z' },
       { createdTime: '2026-02-01T00:00:00.000Z' },
-    ];
+    ] as FlatRecord[];
     const sorted = [...rows].sort(byTimeDesc('createdTime'));
     expect(sorted.map((r) => r.createdTime)).toEqual([
       '2026-03-01T00:00:00.000Z',

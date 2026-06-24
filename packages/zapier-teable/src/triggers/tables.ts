@@ -1,19 +1,19 @@
-'use strict';
-
-const { apiUrl } = require('../lib/client');
+import type { ZObject, Bundle } from 'zapier-platform-core';
+import { apiUrl } from '../lib/client';
+import type { TeableTable, DropdownItem } from '../lib/types';
 
 // Hidden trigger powering the "Table" dropdown. Depends on a chosen baseId.
-const perform = async (z, bundle) => {
+const perform = async (z: ZObject, bundle: Bundle): Promise<DropdownItem[]> => {
   const { baseId } = bundle.inputData;
   if (!baseId) return [];
-  const response = await z.request({ url: apiUrl(bundle, `/base/${baseId}/table`) });
+  const response = await z.request<TeableTable[]>({ url: apiUrl(bundle, `/base/${baseId}/table`) });
   return (response.data || []).map((table) => ({
     id: table.id,
     name: table.name,
   }));
 };
 
-module.exports = {
+export default {
   key: 'tables',
   noun: 'Table',
   display: {

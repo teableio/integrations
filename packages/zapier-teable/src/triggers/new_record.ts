@@ -1,19 +1,19 @@
-'use strict';
-
-const { listRecords, flatten, byTimeDesc } = require('../lib/records');
+import type { ZObject, Bundle } from 'zapier-platform-core';
+import { listRecords, flatten, byTimeDesc } from '../lib/records';
+import type { FlatRecord } from '../lib/records';
 
 // Polling trigger: fires for each newly CREATED record. Zapier de-dupes by `id`,
 // so we just return the most recent page newest-first.
-const perform = async (z, bundle) => {
+const perform = async (z: ZObject, bundle: Bundle): Promise<FlatRecord[]> => {
   const records = await listRecords(z, bundle, {
-    tableId: bundle.inputData.tableId,
-    viewId: bundle.inputData.viewId,
+    tableId: bundle.inputData.tableId as string,
+    viewId: bundle.inputData.viewId as string | undefined,
     take: 100,
   });
   return records.map(flatten).sort(byTimeDesc('createdTime'));
 };
 
-module.exports = {
+export default {
   key: 'new_record',
   noun: 'Record',
   display: {

@@ -1,6 +1,4 @@
-'use strict';
-
-const { App, appTester, authData, describeLive, describeTable } = require('./helpers');
+import { App, appTester, authData, describeLive, describeTable } from './helpers';
 
 describeLive('hidden dropdown triggers', () => {
   it('bases: lists bases the token can see', async () => {

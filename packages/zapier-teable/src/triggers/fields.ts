@@ -1,17 +1,17 @@
-'use strict';
-
-const { fetchFields } = require('../lib/fields');
+import type { ZObject, Bundle } from 'zapier-platform-core';
+import { fetchFields } from '../lib/fields';
+import type { DropdownItem } from '../lib/types';
 
 // Hidden trigger powering field-name dropdowns (e.g. in Find Record).
-const perform = async (z, bundle) => {
+const perform = async (z: ZObject, bundle: Bundle): Promise<DropdownItem[]> => {
   const { tableId } = bundle.inputData;
   if (!tableId) return [];
-  const fields = await fetchFields(z, bundle, tableId);
+  const fields = await fetchFields(z, bundle, tableId as string);
   // id === name so the selected value is the field name used by filterByTql.
   return fields.map((f) => ({ id: f.name, name: f.name }));
 };
 
-module.exports = {
+export default {
   key: 'fields',
   noun: 'Field',
   display: {

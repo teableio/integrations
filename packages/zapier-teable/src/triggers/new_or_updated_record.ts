@@ -1,24 +1,28 @@
-'use strict';
-
-const { listRecords, flatten, byTimeDesc } = require('../lib/records');
+import type { ZObject, Bundle } from 'zapier-platform-core';
+import { listRecords, flatten, byTimeDesc } from '../lib/records';
+import type { FlatRecord } from '../lib/records';
 
 // Polling trigger: fires when a record is created OR updated. We synthesize a
 // dedupe id from recordId + lastModifiedTime so an edit looks "new" to Zapier.
-const perform = async (z, bundle) => {
+const perform = async (z: ZObject, bundle: Bundle): Promise<FlatRecord[]> => {
   const records = await listRecords(z, bundle, {
-    tableId: bundle.inputData.tableId,
-    viewId: bundle.inputData.viewId,
+    tableId: bundle.inputData.tableId as string,
+    viewId: bundle.inputData.viewId as string | undefined,
     take: 100,
   });
   return records
     .map((r) => {
       const flat = flatten(r);
-      return { ...flat, id: `${flat.id}@${flat.lastModifiedTime || flat.createdTime}`, recordId: flat.id };
+      return {
+        ...flat,
+        id: `${flat.id}@${flat.lastModifiedTime || flat.createdTime}`,
+        recordId: flat.id,
+      };
     })
     .sort(byTimeDesc('lastModifiedTime'));
 };
 
-module.exports = {
+export default {
   key: 'new_or_updated_record',
   noun: 'Record',
   display: {

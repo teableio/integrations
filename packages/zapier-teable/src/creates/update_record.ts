@@ -1,13 +1,14 @@
-'use strict';
-
-const { apiUrl } = require('../lib/client');
-const { flatten } = require('../lib/records');
-const { dynamicRecordFields, collectFieldsObject } = require('../lib/fields');
+import type { ZObject, Bundle } from 'zapier-platform-core';
+import type { IRecord } from '@teable/openapi';
+import { apiUrl } from '../lib/client';
+import { flatten } from '../lib/records';
+import type { FlatRecord } from '../lib/records';
+import { dynamicRecordFields, collectFieldsObject } from '../lib/fields';
 
 // PATCH /api/table/{tableId}/record/{recordId}  body: { fieldKeyType, typecast, record: { fields } }
-const perform = async (z, bundle) => {
+const perform = async (z: ZObject, bundle: Bundle): Promise<FlatRecord> => {
   const fields = collectFieldsObject(bundle.inputData);
-  const response = await z.request({
+  const response = await z.request<IRecord>({
     method: 'PATCH',
     url: apiUrl(bundle, `/table/${bundle.inputData.tableId}/record/${bundle.inputData.recordId}`),
     body: {
@@ -16,10 +17,10 @@ const perform = async (z, bundle) => {
       record: { fields },
     },
   });
-  return flatten(response.data || {});
+  return flatten((response.data || {}) as IRecord);
 };
 
-module.exports = {
+export default {
   key: 'update_record',
   noun: 'Record',
   display: {

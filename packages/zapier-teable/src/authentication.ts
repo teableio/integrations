@@ -1,6 +1,13 @@
-'use strict';
+import type { ZObject, Bundle } from 'zapier-platform-core';
+import { apiUrl, apiBase } from './lib/client';
 
-const { apiUrl, apiBase } = require('./lib/client');
+// Shape of Teable's OAuth token endpoint response.
+interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in?: number;
+  [key: string]: unknown;
+}
 
 // Scopes requested from Teable (format: resource|action). Must be a subset of
 // what the OAuth App was granted in Teable → Settings → OAuth Apps.
@@ -17,8 +24,8 @@ const SCOPES = [
 
 // Exchange the authorization code for tokens. Teable's token endpoint expects
 // form-urlencoded and returns { access_token, refresh_token, expires_in, ... }.
-const getAccessToken = async (z, bundle) => {
-  const response = await z.request({
+const getAccessToken = async (z: ZObject, bundle: Bundle) => {
+  const response = await z.request<TokenResponse>({
     url: `${apiBase()}/oauth/access_token`,
     method: 'POST',
     body: {
@@ -39,8 +46,8 @@ const getAccessToken = async (z, bundle) => {
 // Teable access tokens are short-lived (~10 min); Zapier auto-refreshes with the
 // refresh token. Teable rotates the refresh token each time, so return the new
 // one to persist it.
-const refreshAccessToken = async (z, bundle) => {
-  const response = await z.request({
+const refreshAccessToken = async (z: ZObject, bundle: Bundle) => {
+  const response = await z.request<TokenResponse>({
     url: `${apiBase()}/oauth/access_token`,
     method: 'POST',
     body: {
@@ -60,13 +67,13 @@ const refreshAccessToken = async (z, bundle) => {
 // Validate a connection with a scoped read the OAuth token actually has access
 // to. NOTE: /auth/user/me is NOT OAuth-accessible (returns 403
 // restricted_resource) — use /base/access/all, covered by the base|read scope.
-// Expiry is handled by handleErrors (401 -> RefreshAuthError) in index.js.
-const test = async (z, bundle) => {
+// Expiry is handled by handleErrors (401 -> RefreshAuthError) in index.ts.
+const test = async (z: ZObject, bundle: Bundle) => {
   const response = await z.request({ url: apiUrl(bundle, '/base/access/all') });
   return response.data;
 };
 
-module.exports = {
+export default {
   type: 'oauth2',
   oauth2Config: {
     // Browser redirect. Uses the env var directly so it resolves at request time.

@@ -1,6 +1,4 @@
-'use strict';
-
-const { App, appTester, authData, describeLive } = require('./helpers');
+import { App, appTester, authData, describeLive } from './helpers';
 
 // Live test: exercises authentication.test against a real Teable instance.
 // Skipped automatically when no .env credentials are present.

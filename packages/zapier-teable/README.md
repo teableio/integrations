@@ -24,14 +24,27 @@ schedule (1–15 min depending on plan). If Teable later ships an outbound webho
 "record changed → POST" capability, these can be upgraded to instant triggers via
 `performSubscribe`/`performUnsubscribe`.
 
+## TypeScript
+
+This app is written in **TypeScript** under `src/` and compiled to CommonJS in
+`dist/` (the build output; git-ignored). `package.json` `main` points at
+`dist/index.js`, and Zapier's official `_zapier-build` hook runs `npm run build`
+automatically before `zapier push` / `zapier build`, so the compiled `dist/` is
+what gets uploaded.
+
+```bash
+npm run build            # rimraf dist && tsc → dist/
+```
+
 ## Develop & publish
 
 ```bash
 cd integrations/zapier-teable
 npm install
+npm run build           # compile src/ → dist/ (zapier push also runs this via _zapier-build)
 zapier login            # uses your Zapier account
 zapier register "Teable"  # first time only — creates the app
-zapier push             # uploads this code (needs your deploy key)
+zapier push             # auto-runs the build (_zapier-build), then uploads dist/
 zapier validate         # static checks
 ```
 
@@ -42,11 +55,14 @@ Then test in the Zap editor with a Teable instance URL + a Personal Access Token
 
 ```bash
 npm install
-npm test                 # jest: unit tests always run; live tests skip without .env
+npm test                 # jest (ts-jest): unit tests always run; live tests skip without .env
 npx zapier validate      # static schema checks (needs zapier-platform-cli)
 ```
 
-- **Unit tests** (`test/unit.test.js`) — pure lib logic (URL building, flatten, field
+Tests are TypeScript (`test/*.test.ts`) and run through **ts-jest** (configured in
+`jest.config.js`), so `npm test` type-checks and runs them without a separate build.
+
+- **Unit tests** (`test/unit.test.ts`) — pure lib logic (URL building, flatten, field
   collection). No network, no credentials.
 - **Live tests** (`auth`, `triggers`, `records`) — hit a real Teable instance via
   `createAppTester`. They **skip automatically** unless you provide credentials:
@@ -56,7 +72,7 @@ npx zapier validate      # static schema checks (needs zapier-platform-cli)
   npm test                 # now the live suites run too
   ```
 
-  `test/records.test.js` **writes** a record (create → find → update), so point
+  `test/records.test.ts` **writes** a record (create → find → update), so point
   `TEABLE_TABLE_ID` at a throwaway table.
 
 ## Known limits / TODO
