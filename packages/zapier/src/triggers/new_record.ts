@@ -39,9 +39,10 @@ export default {
       },
       {
         key: 'viewId',
-        label: 'View (optional)',
+        label: 'View',
         type: 'string',
         required: false,
+        dynamic: 'views.id.name',
         helpText: 'Limit to records in a specific view. Leave blank for all records.',
       },
     ],
