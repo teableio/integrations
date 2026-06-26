@@ -9,9 +9,10 @@ node_modules/
 .env.*
 !.env.example
 
-# NOTE: .zapierapprc holds the app id/key (identifiers, NOT a secret) and is
-# committed so CI can `zapier push`. The deploy key lives in ~/.zapierrc / the
-# ZAPIER_DEPLOY_KEY CI secret — never in the repo.
+# Zapier app linkage — kept out of the repo. CI writes it from the
+# ZAPIER_APP_ID / ZAPIER_APP_KEY repo Variables; locally run `zapier-platform
+# link`. (The deploy key lives in ~/.zapierrc / the ZAPIER_DEPLOY_KEY secret.)
+.zapierapprc
 
 # Build output
 build/

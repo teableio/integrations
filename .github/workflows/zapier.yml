@@ -65,6 +65,14 @@ jobs:
           cache: npm
           cache-dependency-path: packages/zapier/package-lock.json
       - run: npm ci
+      - name: Link app — write .zapierapprc from repo Variables
+        run: |
+          if [ -z "${{ vars.ZAPIER_APP_ID }}" ] || [ -z "${{ vars.ZAPIER_APP_KEY }}" ]; then
+            echo "::error::Set repo Variables ZAPIER_APP_ID and ZAPIER_APP_KEY (Settings -> Secrets and variables -> Actions -> Variables)."
+            exit 1
+          fi
+          printf '{"id": %s, "key": "%s"}\n' \
+            "${{ vars.ZAPIER_APP_ID }}" "${{ vars.ZAPIER_APP_KEY }}" > .zapierapprc
       - name: Guard — never overwrite a version that has users
         env:
           ZAPIER_DEPLOY_KEY: ${{ secrets.ZAPIER_DEPLOY_KEY }}
