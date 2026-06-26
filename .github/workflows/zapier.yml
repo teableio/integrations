@@ -73,17 +73,23 @@ jobs:
           fi
           printf '{"id": %s, "key": "%s"}\n' \
             "${{ vars.ZAPIER_APP_ID }}" "${{ vars.ZAPIER_APP_KEY }}" > .zapierapprc
-      - name: Guard — never overwrite a version that has users
+      - name: Guard — never overwrite a PUBLIC version that has users
         env:
           ZAPIER_DEPLOY_KEY: ${{ secrets.ZAPIER_DEPLOY_KEY }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          USERS=$(npx zapier-platform versions --format json 2>/dev/null \
-            | jq -r --arg v "$VERSION" \
-              '[.[] | select(.Version == $v) | (.["Zap Users"] | tonumber)] | add // 0')
-          echo "Version $VERSION currently has ${USERS:-0} Zap user(s)."
-          if [ "${USERS:-0}" -gt 0 ]; then
-            echo "::error::Version $VERSION already has users. Bump the version in packages/zapier/package.json before deploying."
+          ROW=$(npx zapier-platform versions --format json 2>/dev/null \
+            | jq -c --arg v "$VERSION" 'map(select(.Version == $v)) | first // {}')
+          STATE=$(echo "$ROW" | jq -r '.State // "private"')
+          USERS=$(echo "$ROW" | jq -r '(.["Zap Users"] // "0") | tonumber')
+          echo "Version $VERSION — state: $STATE, Zap users: $USERS."
+          # While the version is still private (pre-publish beta), overwrite
+          # freely — the only live Zaps are your own test users, which you must
+          # turn on to satisfy Zapier's publishing requirements. Once the version
+          # is promoted (no longer private) and has real users, refuse to
+          # overwrite: bump the version and promote instead.
+          if [ "$STATE" != "private" ] && [ "${USERS:-0}" -gt 0 ]; then
+            echo "::error::Version $VERSION is $STATE and has $USERS user(s). Bump the version in packages/zapier/package.json, then promote."
             exit 1
           fi
       - name: Push to Zapier (overwrites the same version)
