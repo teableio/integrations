@@ -32,12 +32,18 @@ interface ListRecordsOptions {
   take?: number;
 }
 
+// How many records each poll pulls. Teable can't sort by the system
+// lastModifiedTime, so we can't do a true watermark+pagination cursor; a wider
+// window just lowers the odds of missing changes when many happen between polls
+// (Zapier still de-dupes by id). Max allowed by the API is 2000.
+const POLL_PAGE_SIZE = 600;
+
 // Fetch a page of records. No outbound webhook exists in Teable's public API,
 // so triggers poll this endpoint and Zapier de-dupes by the returned `id`.
 const listRecords = async (
   z: ZObject,
   bundle: Bundle,
-  { tableId, viewId, take = 100 }: ListRecordsOptions,
+  { tableId, viewId, take = POLL_PAGE_SIZE }: ListRecordsOptions,
 ): Promise<IRecord[]> => {
   const params: Record<string, unknown> = { take, fieldKeyType: 'name' };
   if (viewId) params.viewId = viewId;
@@ -53,4 +59,4 @@ const byTimeDesc =
   (a: FlatRecord, b: FlatRecord): number =>
     new Date((b[key] as string) || 0).getTime() - new Date((a[key] as string) || 0).getTime();
 
-export { flatten, listRecords, byTimeDesc };
+export { flatten, listRecords, byTimeDesc, POLL_PAGE_SIZE };

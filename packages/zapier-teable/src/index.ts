@@ -2,6 +2,7 @@ import { version as platformVersion } from 'zapier-platform-core';
 import type { ZObject, HttpRequestOptionsWithUrl, HttpResponse } from 'zapier-platform-core';
 
 import authentication from './authentication';
+import { rawInstance } from './lib/client';
 
 import bases from './triggers/bases';
 import tables from './triggers/tables';
@@ -12,8 +13,11 @@ import newOrUpdatedRecord from './triggers/new_or_updated_record';
 import createRecord from './creates/create_record';
 import updateRecord from './creates/update_record';
 import createOrUpdateRecord from './creates/create_or_update_record';
+import deleteRecord from './creates/delete_record';
+import apiRequest from './creates/api_request';
 
 import findRecord from './searches/find_record';
+import findRecordById from './searches/get_record';
 
 // App version comes from package.json. The built entry is dist/index.js, so the
 // runtime-relative path is ../package.json. Use a runtime `require` (not an
@@ -21,13 +25,16 @@ import findRecord from './searches/find_record';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { version } = require('../package.json');
 
-// Attach the OAuth access token as a Bearer token on every outgoing request.
+// Attach the OAuth access token as a Bearer token — but ONLY on requests to the
+// Teable instance. Attachment uploads first download the file from an arbitrary
+// external URL; we must not leak the Teable token to that third-party host.
 const includeBearerToken = (
   request: HttpRequestOptionsWithUrl,
   z: ZObject,
   bundle: { authData?: { access_token?: string } },
 ): HttpRequestOptionsWithUrl => {
-  if (bundle.authData && bundle.authData.access_token) {
+  const toTeable = typeof request.url === 'string' && request.url.startsWith(rawInstance());
+  if (toTeable && bundle.authData && bundle.authData.access_token) {
     request.headers = request.headers || {};
     request.headers.Authorization = `Bearer ${bundle.authData.access_token}`;
   }
@@ -74,10 +81,13 @@ const App = {
     create_record: createRecord,
     update_record: updateRecord,
     create_or_update_record: createOrUpdateRecord,
+    delete_record: deleteRecord,
+    api_request: apiRequest,
   },
 
   searches: {
     find_record: findRecord,
+    find_record_by_id: findRecordById,
   },
 };
 

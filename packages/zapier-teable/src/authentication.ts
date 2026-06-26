@@ -64,12 +64,14 @@ const refreshAccessToken = async (z: ZObject, bundle: Bundle) => {
   };
 };
 
-// Validate a connection with a scoped read the OAuth token actually has access
-// to. NOTE: /auth/user/me is NOT OAuth-accessible (returns 403
-// restricted_resource) — use /base/access/all, covered by the base|read scope.
-// Expiry is handled by handleErrors (401 -> RefreshAuthError) in index.ts.
+// Validate the connection AND fetch the account identity for connectionLabel.
+// GET /api/auth/user is the OAuth-accessible "user info via access token"
+// endpoint (returns { id, name, email, avatar }); the email needs the
+// `user|email_read` scope. NOTE: /auth/user/me (no trailing path) is the
+// session-only endpoint and returns 403 restricted_resource for OAuth tokens —
+// don't use it. Expiry is handled by handleErrors (401 -> RefreshAuthError).
 const test = async (z: ZObject, bundle: Bundle) => {
-  const response = await z.request({ url: apiUrl(bundle, '/base/access/all') });
+  const response = await z.request({ url: apiUrl(bundle, '/auth/user') });
   return response.data;
 };
 
@@ -93,7 +95,10 @@ export default {
   },
   fields: [],
   test,
-  // OAuth tokens can't read user identity (/auth/user/me is restricted), so use
-  // a static label.
-  connectionLabel: 'Teable',
+  // Show the account identity (like Airtable does) from the test() result —
+  // email first, falling back to name, then a static label.
+  connectionLabel: (z: ZObject, bundle: Bundle) => {
+    const user = (bundle.inputData || {}) as { name?: string; email?: string };
+    return user.email || user.name || 'Teable';
+  },
 };

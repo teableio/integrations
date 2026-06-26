@@ -8,7 +8,6 @@ const perform = async (z: ZObject, bundle: Bundle): Promise<FlatRecord[]> => {
   const records = await listRecords(z, bundle, {
     tableId: bundle.inputData.tableId as string,
     viewId: bundle.inputData.viewId as string | undefined,
-    take: 100,
   });
   return records
     .map((r) => {

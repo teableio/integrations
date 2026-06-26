@@ -4,19 +4,32 @@ import { apiUrl } from '../lib/client';
 import { flatten } from '../lib/records';
 import type { FlatRecord } from '../lib/records';
 import { dynamicRecordFields, collectFieldsObject } from '../lib/fields';
+import { splitAttachmentFields, uploadAttachmentUrls } from '../lib/attachments';
 
 // PATCH /api/table/{tableId}/record/{recordId}  body: { fieldKeyType, typecast, record: { fields } }
+// Attachment fields are appended via uploadAttachment (URLs), not the PATCH body.
 const perform = async (z: ZObject, bundle: Bundle): Promise<FlatRecord> => {
-  const fields = collectFieldsObject(bundle.inputData);
+  const tableId = bundle.inputData.tableId as string;
+  const recordId = bundle.inputData.recordId as string;
+  const { writeFields, attachments } = await splitAttachmentFields(
+    z,
+    bundle,
+    tableId,
+    collectFieldsObject(bundle.inputData),
+  );
   const response = await z.request<IRecord>({
     method: 'PATCH',
-    url: apiUrl(bundle, `/table/${bundle.inputData.tableId}/record/${bundle.inputData.recordId}`),
+    url: apiUrl(bundle, `/table/${tableId}/record/${recordId}`),
     body: {
       fieldKeyType: 'name',
       typecast: true,
-      record: { fields },
+      record: { fields: writeFields },
     },
   });
+  if (attachments.length) {
+    const updated = await uploadAttachmentUrls(z, bundle, tableId, recordId, attachments);
+    if (updated) return flatten(updated);
+  }
   return flatten((response.data || {}) as IRecord);
 };
 

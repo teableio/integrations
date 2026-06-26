@@ -4,6 +4,7 @@ import { apiUrl } from '../lib/client';
 import { flatten } from '../lib/records';
 import type { FlatRecord } from '../lib/records';
 import { dynamicRecordFields, collectFieldsObject } from '../lib/fields';
+import { splitAttachmentFields, uploadAttachmentUrls } from '../lib/attachments';
 
 // Upsert: find a record by a chosen match field and update it, else create one.
 //
@@ -75,24 +76,36 @@ const findFirstMatch = async (
 };
 
 const perform = async (z: ZObject, bundle: Bundle): Promise<FlatRecord> => {
-  const fields = collectFieldsObject(bundle.inputData);
+  const tableId = bundle.inputData.tableId as string;
+  const all = collectFieldsObject(bundle.inputData);
   const matchField = bundle.inputData.matchField as string | undefined;
   // collectFieldsObject keys by field name and drops empty/null/undefined, so a
-  // present key here means the user supplied a non-empty match value.
-  const matchValue = matchField ? fields[matchField] : undefined;
+  // present key here means the user supplied a non-empty match value. Match on
+  // the original value (the match field is never an attachment).
+  const matchValue = matchField ? all[matchField] : undefined;
 
+  // Attachment fields can't be written inline; split them out and append after.
+  const { writeFields, attachments } = await splitAttachmentFields(z, bundle, tableId, all);
+
+  let record: FlatRecord;
   // No match field chosen, or its value is empty/missing → treat as "no match"
   // and just create. (find_record-style TQL on an empty value isn't meaningful.)
   if (!matchField || matchValue === undefined) {
-    return createRecord(z, bundle, fields);
+    record = await createRecord(z, bundle, writeFields);
+  } else {
+    const existing = await findFirstMatch(z, bundle, matchField, matchValue);
+    // If multiple rows match, findFirstMatch already returned the first.
+    record =
+      existing && existing.id
+        ? await updateRecord(z, bundle, existing.id, writeFields)
+        : await createRecord(z, bundle, writeFields);
   }
 
-  const existing = await findFirstMatch(z, bundle, matchField, matchValue);
-  if (existing && existing.id) {
-    // If multiple rows match, findFirstMatch already returned the first.
-    return updateRecord(z, bundle, existing.id, fields);
+  if (record.id && attachments.length) {
+    const updated = await uploadAttachmentUrls(z, bundle, tableId, record.id, attachments);
+    if (updated) return flatten(updated);
   }
-  return createRecord(z, bundle, fields);
+  return record;
 };
 
 export default {

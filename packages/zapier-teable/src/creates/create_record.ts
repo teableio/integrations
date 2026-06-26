@@ -1,23 +1,37 @@
 import type { ZObject, Bundle } from 'zapier-platform-core';
-import type { IRecordsVo } from '@teable/openapi';
+import type { IRecord, IRecordsVo } from '@teable/openapi';
 import { apiUrl } from '../lib/client';
 import { flatten } from '../lib/records';
 import type { FlatRecord } from '../lib/records';
 import { dynamicRecordFields, collectFieldsObject } from '../lib/fields';
+import { splitAttachmentFields, uploadAttachmentUrls } from '../lib/attachments';
 
 // POST /api/table/{tableId}/record  body: { fieldKeyType, typecast, records: [{ fields }] }
+// Attachment fields can't be written inline, so they're split out and appended
+// from their URL(s) via uploadAttachment after the record exists.
 const perform = async (z: ZObject, bundle: Bundle): Promise<FlatRecord> => {
-  const fields = collectFieldsObject(bundle.inputData);
+  const tableId = bundle.inputData.tableId as string;
+  const { writeFields, attachments } = await splitAttachmentFields(
+    z,
+    bundle,
+    tableId,
+    collectFieldsObject(bundle.inputData),
+  );
   const response = await z.request<IRecordsVo>({
     method: 'POST',
-    url: apiUrl(bundle, `/table/${bundle.inputData.tableId}/record`),
+    url: apiUrl(bundle, `/table/${tableId}/record`),
     body: {
       fieldKeyType: 'name',
       typecast: true, // coerce strings to selects/dates/numbers like Airtable does
-      records: [{ fields }],
+      records: [{ fields: writeFields }],
     },
   });
   const created = (response.data && response.data.records && response.data.records[0]) || {};
+  const recordId = (created as IRecord).id;
+  if (recordId && attachments.length) {
+    const updated = await uploadAttachmentUrls(z, bundle, tableId, recordId, attachments);
+    if (updated) return flatten(updated);
+  }
   return flatten(created as IRecordsVo['records'][number]);
 };
 
