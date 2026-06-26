@@ -9,8 +9,9 @@ node_modules/
 .env.*
 !.env.example
 
-# Zapier CLI deploy config (contains a deploy key)
-.zapierapprc
+# NOTE: .zapierapprc holds the app id/key (identifiers, NOT a secret) and is
+# committed so CI can `zapier push`. The deploy key lives in ~/.zapierrc / the
+# ZAPIER_DEPLOY_KEY CI secret — never in the repo.
 
 # Build output
 build/
