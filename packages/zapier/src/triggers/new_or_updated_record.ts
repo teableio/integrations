@@ -46,14 +46,17 @@ export default {
         required: true,
         dynamic: 'tables.id.name',
         search: 'tables.id',
+        // Pass the chosen table down so the View dropdown (which depends on
+        // tableId) re-fetches with it in scope.
+        altersDynamicFields: true,
       },
       {
         key: 'viewId',
         label: 'View',
         type: 'string',
         required: false,
-        helpText:
-          'Optional. The `viw…` id of a view to limit records to (from the view URL). Leave blank for all records.',
+        dynamic: 'views.id.name',
+        helpText: 'Limit to records in a specific view. Leave blank for all records.',
       },
     ],
     perform,

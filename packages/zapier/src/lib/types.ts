@@ -30,6 +30,12 @@ export interface TeableTable {
   name: string;
 }
 
+// A view as returned by GET /table/{tableId}/view.
+export interface TeableView {
+  id: string;
+  name: string;
+}
+
 // An { id, name } row used to populate Zapier dynamic dropdowns.
 export interface DropdownItem {
   id: string;
