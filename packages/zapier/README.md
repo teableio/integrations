@@ -75,7 +75,7 @@ globally as `zapier` if you prefer (`npm i -g zapier-platform-cli`); the command
 below use `npx zapier-platform`.
 
 ```bash
-cd packages/zapier-teable
+cd packages/zapier
 npm install
 npx zapier-platform login           # uses your Zapier account
 npx zapier-platform push            # runs _zapier-build (tsc), then uploads build.zip

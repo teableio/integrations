@@ -8,7 +8,7 @@ Each integration is a self-contained package under `packages/`, built and releas
 
 | Package | Platform | Status | Distribution |
 | --- | --- | --- | --- |
-| [`packages/zapier-teable`](./packages/zapier-teable) | [Zapier](https://zapier.com) | In development | `zapier push` (Zapier Platform CLI) |
+| [`packages/zapier`](./packages/zapier) | [Zapier](https://zapier.com) | In development | `zapier push` (Zapier Platform CLI) |
 | `packages/n8n-nodes-teable` | [n8n](https://n8n.io) | Planned | npm — `n8n-nodes-teable` |
 
 ## Layout
@@ -16,6 +16,6 @@ Each integration is a self-contained package under `packages/`, built and releas
 ```
 integrations/
   packages/
-    zapier-teable/        # Zapier Platform CLI app
+    zapier/               # Zapier Platform CLI app
     n8n-nodes-teable/     # n8n community node (planned)
 ```
