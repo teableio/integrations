@@ -15,6 +15,7 @@ const SCOPES = [
   'base|read',
   'table|read',
   'field|read',
+  'view|read',
   'record|read',
   'record|create',
   'record|update',
