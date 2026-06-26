@@ -7,7 +7,6 @@ import { rawInstance } from './lib/client';
 import bases from './triggers/bases';
 import tables from './triggers/tables';
 import fields from './triggers/fields';
-import views from './triggers/views';
 import newRecord from './triggers/new_record';
 import newOrUpdatedRecord from './triggers/new_or_updated_record';
 
@@ -74,7 +73,6 @@ const App = {
     bases,
     tables,
     fields,
-    views,
     new_record: newRecord,
     new_or_updated_record: newOrUpdatedRecord,
   },
