@@ -1,0 +1,27 @@
+# Repo-wide quality gate (oxlint + oxfmt). Shared across all packages — it's
+# only a check, never deploys, so it doesn't affect per-package release
+# isolation. Mirrors what the lefthook pre-commit hook runs locally, enforcing
+# it for contributors who don't have the hooks installed.
+
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Format check
+        run: npm run format:check

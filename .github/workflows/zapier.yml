@@ -1,0 +1,84 @@
+# CI/CD for the Zapier integration (packages/zapier).
+# Isolated per-package: only runs when packages/zapier (or this file) changes,
+# so other packages' releases never interfere.
+#
+#   PR  -> check only (tsc + test + schema validate + scoped lint) — no deploy,
+#          auth-free so it works for fork PRs (repo is public).
+#   main -> check, then deploy: `zapier push` overwriting the SAME version.
+#          A guard refuses to overwrite a version that already has Zap users,
+#          so you only ever bump the version when you'd actually affect users.
+#
+# App env (CLIENT_ID / CLIENT_SECRET / TEABLE_INSTANCE_URL) lives on Zapier's
+# server per version and is preserved across a same-version push — CI never
+# touches it. Only secret needed here: ZAPIER_DEPLOY_KEY (repo Settings ->
+# Secrets and variables -> Actions).
+
+name: zapier
+
+on:
+  pull_request:
+    paths:
+      - 'packages/zapier/**'
+      - '.github/workflows/zapier.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/zapier/**'
+      - '.github/workflows/zapier.yml'
+
+# Cancel superseded PR runs; never cancel a main deploy mid-flight.
+concurrency:
+  group: zapier-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: packages/zapier
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: packages/zapier/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Test
+        run: npm test
+      - name: Validate schema (no auth needed)
+        run: npx zapier-platform validate --without-style
+
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: packages/zapier/package-lock.json
+      - run: npm ci
+      - name: Guard — never overwrite a version that has users
+        env:
+          ZAPIER_DEPLOY_KEY: ${{ secrets.ZAPIER_DEPLOY_KEY }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          USERS=$(npx zapier-platform versions --format json 2>/dev/null \
+            | jq -r --arg v "$VERSION" \
+              '[.[] | select(.Version == $v) | (.["Zap Users"] | tonumber)] | add // 0')
+          echo "Version $VERSION currently has ${USERS:-0} Zap user(s)."
+          if [ "${USERS:-0}" -gt 0 ]; then
+            echo "::error::Version $VERSION already has users. Bump the version in packages/zapier/package.json before deploying."
+            exit 1
+          fi
+      - name: Push to Zapier (overwrites the same version)
+        env:
+          ZAPIER_DEPLOY_KEY: ${{ secrets.ZAPIER_DEPLOY_KEY }}
+        run: npx zapier-platform push
