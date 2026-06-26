@@ -46,6 +46,9 @@ export default {
         required: true,
         dynamic: 'tables.id.name',
         search: 'tables.id',
+        // Pass the chosen table down so the View dropdown (which depends on
+        // tableId) re-fetches with it in scope.
+        altersDynamicFields: true,
       },
       {
         key: 'viewId',
