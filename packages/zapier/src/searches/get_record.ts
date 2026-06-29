@@ -54,6 +54,9 @@ export default {
         label: 'Record ID',
         type: 'string',
         required: true,
+        // Let users pick a record via the Find Record search instead of pasting
+        // a raw id (also satisfies Zapier's "ID field needs a dropdown" check).
+        search: 'find_record.id',
         helpText: 'The `rec…` id of the record to fetch (e.g. from a trigger step).',
       },
     ],

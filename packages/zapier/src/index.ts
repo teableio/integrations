@@ -62,6 +62,11 @@ const App = {
   version,
   platformVersion,
 
+  // Pass user input through untouched. Zapier's default "cleaning" trims
+  // whitespace and drops empty values, which can silently alter field values
+  // before they reach Teable. Disabling it globally makes writes predictable.
+  flags: { cleanInputData: false },
+
   authentication,
 
   beforeRequest: [includeBearerToken],
