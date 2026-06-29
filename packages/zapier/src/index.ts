@@ -8,6 +8,7 @@ import bases from './triggers/bases';
 import tables from './triggers/tables';
 import fields from './triggers/fields';
 import views from './triggers/views';
+import records from './triggers/records';
 import newRecord from './triggers/new_record';
 import newOrUpdatedRecord from './triggers/new_or_updated_record';
 
@@ -80,6 +81,7 @@ const App = {
     tables,
     fields,
     views,
+    records,
     new_record: newRecord,
     new_or_updated_record: newOrUpdatedRecord,
   },

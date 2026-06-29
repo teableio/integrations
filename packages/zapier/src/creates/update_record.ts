@@ -63,8 +63,10 @@ export default {
         label: 'Record ID',
         type: 'string',
         required: true,
-        // Let users pick a record via the Find Record search instead of pasting
-        // a raw id (also satisfies Zapier's "ID field needs a dropdown" check).
+        // Offer a record picker (dynamic dropdown) plus the Find Record search,
+        // so users don't paste a raw id. The dropdown also satisfies Zapier's
+        // "ID field needs a dynamic dropdown" check.
+        dynamic: 'records.id.name',
         search: 'find_record.id',
         helpText: 'The `rec…` id of the record to update (e.g. from a trigger step).',
       },
