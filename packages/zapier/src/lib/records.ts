@@ -30,6 +30,7 @@ interface ListRecordsOptions {
   tableId: string;
   viewId?: string;
   take?: number;
+  skip?: number;
 }
 
 // How many records each poll pulls. Teable can't sort by the system
@@ -43,9 +44,10 @@ const POLL_PAGE_SIZE = 600;
 const listRecords = async (
   z: ZObject,
   bundle: Bundle,
-  { tableId, viewId, take = POLL_PAGE_SIZE }: ListRecordsOptions,
+  { tableId, viewId, take = POLL_PAGE_SIZE, skip }: ListRecordsOptions,
 ): Promise<IRecord[]> => {
   const params: Record<string, unknown> = { take, fieldKeyType: 'name' };
+  if (skip) params.skip = skip;
   if (viewId) params.viewId = viewId;
   const response = await z.request<IRecordsVo>({
     url: apiUrl(bundle, `/table/${tableId}/record`),

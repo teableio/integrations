@@ -13,7 +13,6 @@ export interface TeableField {
   id: string;
   name: string;
   type: string;
-  isPrimary?: boolean;
   options?: {
     choices?: Array<{ name: string }>;
   };
