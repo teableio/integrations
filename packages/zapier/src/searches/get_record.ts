@@ -61,8 +61,9 @@ export default {
     sample: {
       id: 'recXXXXXXXXXXXX',
       lastModifiedTime: '2026-01-01T00:00:00.000Z',
-      fields: { Name: 'Acme' },
-      Name: 'Acme',
+      // Field names are dynamic per table — don't hard-code them, or the static
+      // sample fails Zapier's T004 subset check against a real run's keys.
+      fields: {},
     },
   },
 };

@@ -60,14 +60,16 @@ export default {
       },
     ],
     perform,
+    // Only stable system keys here. Field names are dynamic (they differ per
+    // table/user and get spread to the top level by flatten()), so we must NOT
+    // hard-code field names like Name/Status — they won't appear in a live run,
+    // which fails Zapier's T004 "static sample is a subset of live keys" check.
     sample: {
       id: 'recXXXXXXXXXXXX@2026-01-01T00:00:00.000Z',
       recordId: 'recXXXXXXXXXXXX',
       createdTime: '2026-01-01T00:00:00.000Z',
       lastModifiedTime: '2026-01-01T00:00:00.000Z',
-      fields: { Name: 'Acme', Status: 'paid' },
-      Name: 'Acme',
-      Status: 'paid',
+      fields: {},
     },
   },
 };

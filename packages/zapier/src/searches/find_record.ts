@@ -57,8 +57,9 @@ export default {
     perform,
     sample: {
       id: 'recXXXXXXXXXXXX',
-      fields: { Name: 'Acme' },
-      Name: 'Acme',
+      // Field names are dynamic per table — don't hard-code them, or the static
+      // sample fails Zapier's T004 subset check against a real run's keys.
+      fields: {},
     },
   },
 };
