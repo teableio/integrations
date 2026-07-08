@@ -96,10 +96,11 @@ export default {
   },
   fields: [],
   test,
-  // Show the account identity (like Airtable does) from the test() result —
-  // email first, falling back to name, then a static label.
+  // Show the account identity from the test() result — email first, then name.
+  // If neither is available, leave the connection label empty instead of using
+  // a hard-coded app name.
   connectionLabel: (z: ZObject, bundle: Bundle) => {
     const user = (bundle.inputData || {}) as { name?: string; email?: string };
-    return user.email || user.name || 'Teable';
+    return user.email || user.name;
   },
 };

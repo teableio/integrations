@@ -51,8 +51,7 @@ export default {
   noun: 'API Request',
   display: {
     label: 'API Request (Beta)',
-    description:
-      'An advanced action that makes a raw, authenticated HTTP request to the Teable API — useful for endpoints this integration does not cover yet.',
+    description: 'Makes a raw, authenticated HTTP request to an API endpoint.',
   },
   operation: {
     inputFields: [

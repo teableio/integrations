@@ -40,7 +40,7 @@ export default {
   noun: 'Record',
   display: {
     label: 'Create Record',
-    description: 'Creates a new record in a Teable table.',
+    description: 'Creates a new record.',
   },
   operation: {
     inputFields: [
