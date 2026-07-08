@@ -113,7 +113,7 @@ export default {
   noun: 'Record',
   display: {
     label: 'Create or Update Record',
-    description: 'Find a record by a match field and update it, or create a new one.',
+    description: 'Finds a record by a match field and updates it, or creates a new one.',
   },
   operation: {
     inputFields: [

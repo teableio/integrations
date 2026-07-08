@@ -1,7 +1,7 @@
 {
   "name": "@teable/zapier",
   "version": "1.0.0",
-  "description": "Teable integration for Zapier — list/search, create, update and watch records in a Teable base.",
+  "description": "Teable is a no-code database platform for building collaborative apps, managing structured data, and automating workflows.",
   "main": "dist/index.js",
   "private": true,
   "scripts": {
