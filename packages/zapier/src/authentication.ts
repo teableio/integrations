@@ -9,6 +9,15 @@ interface TokenResponse {
   [key: string]: unknown;
 }
 
+// Teable's default access-token TTL, used when the token response omits
+// expires_in for any reason.
+const DEFAULT_EXPIRES_IN_SECONDS = 600;
+
+// Absolute expiry (epoch ms) persisted into authData so beforeRequest can
+// refresh proactively instead of burning a 401 on every expired token.
+const expiresAt = (expiresIn: number | undefined): number =>
+  Date.now() + (Number(expiresIn) > 0 ? Number(expiresIn) : DEFAULT_EXPIRES_IN_SECONDS) * 1000;
+
 // Scopes requested from Teable (format: resource|action). Must be a subset of
 // what the OAuth App was granted in Teable → Settings → OAuth Apps.
 const SCOPES = [
@@ -41,6 +50,7 @@ const getAccessToken = async (z: ZObject, bundle: Bundle) => {
   return {
     access_token: response.data.access_token,
     refresh_token: response.data.refresh_token,
+    expires_at: expiresAt(response.data.expires_in),
   };
 };
 
@@ -62,6 +72,7 @@ const refreshAccessToken = async (z: ZObject, bundle: Bundle) => {
   return {
     access_token: response.data.access_token,
     refresh_token: response.data.refresh_token,
+    expires_at: expiresAt(response.data.expires_in),
   };
 };
 
