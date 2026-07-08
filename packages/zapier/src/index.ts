@@ -27,6 +27,43 @@ import findRecordById from './searches/get_record';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { version } = require('../package.json');
 
+// Refresh this many ms BEFORE the token actually expires, to absorb clock skew
+// and request latency.
+const REFRESH_SAFETY_MARGIN_MS = 60 * 1000;
+
+// Zapier never refreshes proactively on its own — it only refreshes after a
+// request fails with RefreshAuthError. With Teable's ~10 min token TTL and
+// ~10 min polling cadence, that reactive model means nearly every poll first
+// burns a 401 against the API (which shows up as 4xx noise in the integration's
+// Monitoring). So: token exchanges store an absolute `expires_at` in authData,
+// and this middleware throws RefreshAuthError BEFORE sending a request with a
+// stale token — Zapier then refreshes and retries without the API ever seeing
+// the expired token.
+const preemptiveTokenRefresh = (
+  request: HttpRequestOptionsWithUrl,
+  z: ZObject,
+  bundle: { authData?: { access_token?: string; expires_at?: number | string } },
+): HttpRequestOptionsWithUrl => {
+  const url = typeof request.url === 'string' ? request.url : '';
+  const toTeable = url.startsWith(rawInstance());
+  // The token endpoint must be exempt: the refresh request itself always runs
+  // with an expired (or absent) access token.
+  const isTokenEndpoint = url.includes('/oauth/access_token');
+  // Older connections have no expires_at; they keep the reactive 401 path.
+  const expiresAt = Number(bundle.authData?.expires_at);
+  if (
+    toTeable &&
+    !isTokenEndpoint &&
+    bundle.authData?.access_token &&
+    Number.isFinite(expiresAt) &&
+    expiresAt > 0 &&
+    Date.now() >= expiresAt - REFRESH_SAFETY_MARGIN_MS
+  ) {
+    throw new z.errors.RefreshAuthError('Teable access token is about to expire; refreshing.');
+  }
+  return request;
+};
+
 // Attach the OAuth access token as a Bearer token — but ONLY on requests to the
 // Teable instance. Attachment uploads first download the file from an arbitrary
 // external URL; we must not leak the Teable token to that third-party host.
@@ -70,7 +107,7 @@ const App = {
 
   authentication,
 
-  beforeRequest: [includeBearerToken],
+  beforeRequest: [preemptiveTokenRefresh, includeBearerToken],
   afterResponse: [handleErrors],
 
   // Keyed by each operation's `key`. We use string literals (equal to the

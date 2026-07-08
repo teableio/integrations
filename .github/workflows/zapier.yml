@@ -83,12 +83,13 @@ jobs:
           STATE=$(echo "$ROW" | jq -r '.State // "private"')
           USERS=$(echo "$ROW" | jq -r '(.["Zap Users"] // "0") | tonumber')
           echo "Version $VERSION — state: $STATE, Zap users: $USERS."
-          # While the version is still private (pre-publish beta), overwrite
-          # freely — the only live Zaps are your own test users, which you must
-          # turn on to satisfy Zapier's publishing requirements. Once the version
-          # is promoted (no longer private) and has real users, refuse to
-          # overwrite: bump the version and promote instead.
-          if [ "$STATE" != "private" ] && [ "${USERS:-0}" -gt 0 ]; then
+          # While the version is unpublished — Zapier reports "private" for
+          # never-submitted versions and "draft" while the app is pending
+          # review — overwrite freely: the only live Zaps are your own test
+          # users, which you must turn on to satisfy Zapier's publishing
+          # requirements. Once the version is promoted (public) and has real
+          # users, refuse to overwrite: bump the version and promote instead.
+          if [ "$STATE" != "private" ] && [ "$STATE" != "draft" ] && [ "${USERS:-0}" -gt 0 ]; then
             echo "::error::Version $VERSION is $STATE and has $USERS user(s). Bump the version in packages/zapier/package.json, then promote."
             exit 1
           fi

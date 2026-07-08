@@ -2,6 +2,9 @@
 // so they always run (and are safe in CI). Logic-only coverage of the bits most
 // likely to break: URL building, record flattening, field collection.
 
+import type { ZObject, HttpRequestOptionsWithUrl } from 'zapier-platform-core';
+
+import App from '../src';
 import { apiBase, apiUrl } from '../src/lib/client';
 import { flatten, byTimeDesc } from '../src/lib/records';
 import type { FlatRecord } from '../src/lib/records';
@@ -37,6 +40,63 @@ describe('lib/client apiBase (driven by TEABLE_INSTANCE_URL)', () => {
   it('apiUrl joins base + path', () => {
     process.env.TEABLE_INSTANCE_URL = 'https://app.teable.io';
     expect(apiUrl(null, '/space')).toBe('https://app.teable.io/api/space');
+  });
+});
+
+// The preemptive-refresh middleware is the first beforeRequest hook. It must
+// throw RefreshAuthError for a stale token BEFORE the request goes out (so the
+// API never logs a 401), and must stay out of the way everywhere else.
+describe('beforeRequest preemptive token refresh', () => {
+  class RefreshAuthError extends Error {}
+  const z = { errors: { RefreshAuthError } } as unknown as ZObject;
+  const middleware = App.beforeRequest[0] as (
+    request: HttpRequestOptionsWithUrl,
+    z: ZObject,
+    bundle: { authData?: Record<string, unknown> },
+  ) => HttpRequestOptionsWithUrl;
+
+  const teableUrl = `${apiBase()}/table/tbl1/record`;
+  const run = (url: string, authData?: Record<string, unknown>) =>
+    middleware({ url }, z, { authData });
+
+  it('throws RefreshAuthError when the token is past expiry', () => {
+    expect(() => run(teableUrl, { access_token: 't', expires_at: Date.now() - 1000 })).toThrow(
+      RefreshAuthError,
+    );
+  });
+
+  it('throws within the safety margin (about to expire)', () => {
+    expect(() => run(teableUrl, { access_token: 't', expires_at: Date.now() + 30 * 1000 })).toThrow(
+      RefreshAuthError,
+    );
+  });
+
+  it('passes through when the token is still fresh', () => {
+    const req = run(teableUrl, { access_token: 't', expires_at: Date.now() + 10 * 60 * 1000 });
+    expect(req.url).toBe(teableUrl);
+  });
+
+  it('handles expires_at stored as a string (authData round-trip)', () => {
+    expect(() =>
+      run(teableUrl, { access_token: 't', expires_at: String(Date.now() - 1000) }),
+    ).toThrow(RefreshAuthError);
+  });
+
+  it('skips legacy connections without expires_at (falls back to the 401 path)', () => {
+    const req = run(teableUrl, { access_token: 't' });
+    expect(req.url).toBe(teableUrl);
+  });
+
+  it('never blocks the token endpoint itself (refresh must not dead-lock)', () => {
+    const tokenUrl = `${apiBase()}/oauth/access_token`;
+    const req = run(tokenUrl, { access_token: 't', expires_at: Date.now() - 1000 });
+    expect(req.url).toBe(tokenUrl);
+  });
+
+  it('ignores requests to third-party hosts (attachment downloads)', () => {
+    const external = 'https://files.example.com/a.png';
+    const req = run(external, { access_token: 't', expires_at: Date.now() - 1000 });
+    expect(req.url).toBe(external);
   });
 });
 
