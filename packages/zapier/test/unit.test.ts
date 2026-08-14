@@ -43,6 +43,29 @@ describe('lib/client apiBase (driven by TEABLE_INSTANCE_URL)', () => {
   });
 });
 
+// Every dropdown is powered by an endpoint the backend guards with a specific
+// permission, and a missing scope fails silently: the request 403s and the
+// dropdown just renders empty. `base|read_all` is the one that bit us — the Base
+// dropdown calls GET /api/base/access/all, which is guarded by `base|read_all`,
+// not by `base|read`. Pin the whole set so a scope can't be dropped again.
+describe('authentication OAuth scopes', () => {
+  const scopes = App.authentication.oauth2Config.authorizeUrl.params.scope.split(' ');
+
+  it.each([
+    ['base|read_all', 'GET /api/base/access/all — the Base dropdown'],
+    ['table|read', 'GET /api/base/:baseId/table — the Table dropdown'],
+    ['view|read', 'GET /api/table/:tableId/view — the View dropdown'],
+    ['field|read', 'GET /api/table/:tableId/field — the field inputs'],
+    ['record|read', 'GET /api/table/:tableId/record — triggers and searches'],
+    ['record|create', 'POST /api/table/:tableId/record'],
+    ['record|update', 'PATCH /api/table/:tableId/record/:recordId + attachment upload'],
+    ['record|delete', 'DELETE /api/table/:tableId/record/:recordId'],
+    ['user|email_read', 'GET /api/auth/user — the connection label'],
+  ])('requests %s (%s)', (scope) => {
+    expect(scopes).toContain(scope);
+  });
+});
+
 // The preemptive-refresh middleware is the first beforeRequest hook. It must
 // throw RefreshAuthError for a stale token BEFORE the request goes out (so the
 // API never logs a 401), and must stay out of the way everywhere else.
