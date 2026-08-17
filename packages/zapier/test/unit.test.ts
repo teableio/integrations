@@ -2,10 +2,12 @@
 // so they always run (and are safe in CI). Logic-only coverage of the bits most
 // likely to break: URL building, record flattening, field collection.
 
-import type { ZObject, HttpRequestOptionsWithUrl } from 'zapier-platform-core';
+import type { ZObject, Bundle, HttpRequestOptionsWithUrl } from 'zapier-platform-core';
 
 import App from '../src';
+import bases from '../src/triggers/bases';
 import { apiBase, apiUrl } from '../src/lib/client';
+import { statusOf } from '../src/lib/errors';
 import { flatten, byTimeDesc } from '../src/lib/records';
 import type { FlatRecord } from '../src/lib/records';
 import { collectFieldsObject } from '../src/lib/fields';
@@ -63,6 +65,78 @@ describe('authentication OAuth scopes', () => {
     ['user|email_read', 'GET /api/auth/user — the connection label'],
   ])('requests %s (%s)', (scope) => {
     expect(scopes).toContain(scope);
+  });
+});
+
+describe('lib/errors statusOf', () => {
+  // Exactly what z.errors.Error(message, code, status) produces.
+  const appError = (status: number) =>
+    new Error(
+      JSON.stringify({ message: 'Teable: Forbidden resource', code: 'TeableApiError', status }),
+    );
+
+  it('reads the status back out of a z.errors.Error', () => {
+    expect(statusOf(appError(403))).toBe(403);
+  });
+
+  it('returns undefined for a plain error (network failure, our own bug)', () => {
+    expect(statusOf(new Error('socket hang up'))).toBeUndefined();
+  });
+
+  it('returns undefined when the message is JSON but carries no status', () => {
+    expect(statusOf(new Error(JSON.stringify({ message: 'nope' })))).toBeUndefined();
+  });
+
+  it('returns undefined for a non-Error throw', () => {
+    expect(statusOf('403')).toBeUndefined();
+  });
+});
+
+// The Base dropdown is the one place a missing scope surfaces, and a bare 403
+// there is indistinguishable from "this account has no bases" — which is what
+// sent the original reporter to Zapier support for days. It has to ask for a
+// reconnect instead, because a token's scopes are fixed when it is granted.
+describe('triggers/bases 403 handling', () => {
+  class ExpiredAuthError extends Error {}
+  const zWith = (request: () => Promise<unknown>) =>
+    ({ request, errors: { ExpiredAuthError } }) as unknown as ZObject;
+  const bundle = {} as Bundle;
+  const perform = bases.operation.perform;
+
+  it('asks the user to reconnect when the base list is forbidden', async () => {
+    const z = zWith(() =>
+      Promise.reject(
+        new Error(JSON.stringify({ message: 'x', code: 'TeableApiError', status: 403 })),
+      ),
+    );
+    await expect(perform(z, bundle)).rejects.toThrow(ExpiredAuthError);
+    await expect(perform(z, bundle)).rejects.toThrow(/reconnect your Teable account/i);
+  });
+
+  it('leaves every other failure alone', async () => {
+    const boom = new Error(JSON.stringify({ message: 'x', code: 'TeableApiError', status: 500 }));
+    await expect(
+      perform(
+        zWith(() => Promise.reject(boom)),
+        bundle,
+      ),
+    ).rejects.toThrow(boom);
+  });
+
+  it('maps bases to dropdown items on success', async () => {
+    const z = zWith(() =>
+      Promise.resolve({ data: [{ id: 'bse1', name: 'CRM', extra: 'ignored' }] }),
+    );
+    await expect(perform(z, bundle)).resolves.toEqual([{ id: 'bse1', name: 'CRM' }]);
+  });
+
+  it('tolerates an empty body', async () => {
+    await expect(
+      perform(
+        zWith(() => Promise.resolve({})),
+        bundle,
+      ),
+    ).resolves.toEqual([]);
   });
 });
 
