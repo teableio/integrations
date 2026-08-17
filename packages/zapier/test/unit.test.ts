@@ -2,10 +2,12 @@
 // so they always run (and are safe in CI). Logic-only coverage of the bits most
 // likely to break: URL building, record flattening, field collection.
 
-import type { ZObject, HttpRequestOptionsWithUrl } from 'zapier-platform-core';
+import type { ZObject, Bundle, HttpRequestOptionsWithUrl } from 'zapier-platform-core';
 
 import App from '../src';
+import bases from '../src/triggers/bases';
 import { apiBase, apiUrl } from '../src/lib/client';
+import { statusOf } from '../src/lib/errors';
 import { flatten, byTimeDesc } from '../src/lib/records';
 import type { FlatRecord } from '../src/lib/records';
 import { collectFieldsObject } from '../src/lib/fields';
@@ -40,6 +42,101 @@ describe('lib/client apiBase (driven by TEABLE_INSTANCE_URL)', () => {
   it('apiUrl joins base + path', () => {
     process.env.TEABLE_INSTANCE_URL = 'https://app.teable.io';
     expect(apiUrl(null, '/space')).toBe('https://app.teable.io/api/space');
+  });
+});
+
+// Every dropdown is powered by an endpoint the backend guards with a specific
+// permission, and a missing scope fails silently: the request 403s and the
+// dropdown just renders empty. `base|read_all` is the one that bit us — the Base
+// dropdown calls GET /api/base/access/all, which is guarded by `base|read_all`,
+// not by `base|read`. Pin the whole set so a scope can't be dropped again.
+describe('authentication OAuth scopes', () => {
+  const scopes = App.authentication.oauth2Config.authorizeUrl.params.scope.split(' ');
+
+  it.each([
+    ['base|read_all', 'GET /api/base/access/all — the Base dropdown'],
+    ['table|read', 'GET /api/base/:baseId/table — the Table dropdown'],
+    ['view|read', 'GET /api/table/:tableId/view — the View dropdown'],
+    ['field|read', 'GET /api/table/:tableId/field — the field inputs'],
+    ['record|read', 'GET /api/table/:tableId/record — triggers and searches'],
+    ['record|create', 'POST /api/table/:tableId/record'],
+    ['record|update', 'PATCH /api/table/:tableId/record/:recordId + attachment upload'],
+    ['record|delete', 'DELETE /api/table/:tableId/record/:recordId'],
+    ['user|email_read', 'GET /api/auth/user — the connection label'],
+  ])('requests %s (%s)', (scope) => {
+    expect(scopes).toContain(scope);
+  });
+});
+
+describe('lib/errors statusOf', () => {
+  // Exactly what z.errors.Error(message, code, status) produces.
+  const appError = (status: number) =>
+    new Error(
+      JSON.stringify({ message: 'Teable: Forbidden resource', code: 'TeableApiError', status }),
+    );
+
+  it('reads the status back out of a z.errors.Error', () => {
+    expect(statusOf(appError(403))).toBe(403);
+  });
+
+  it('returns undefined for a plain error (network failure, our own bug)', () => {
+    expect(statusOf(new Error('socket hang up'))).toBeUndefined();
+  });
+
+  it('returns undefined when the message is JSON but carries no status', () => {
+    expect(statusOf(new Error(JSON.stringify({ message: 'nope' })))).toBeUndefined();
+  });
+
+  it('returns undefined for a non-Error throw', () => {
+    expect(statusOf('403')).toBeUndefined();
+  });
+});
+
+// The Base dropdown is the one place a missing scope surfaces, and a bare 403
+// there is indistinguishable from "this account has no bases" — which is what
+// sent the original reporter to Zapier support for days. It has to ask for a
+// reconnect instead, because a token's scopes are fixed when it is granted.
+describe('triggers/bases 403 handling', () => {
+  class ExpiredAuthError extends Error {}
+  const zWith = (request: () => Promise<unknown>) =>
+    ({ request, errors: { ExpiredAuthError } }) as unknown as ZObject;
+  const bundle = {} as Bundle;
+  const perform = bases.operation.perform;
+
+  it('asks the user to reconnect when the base list is forbidden', async () => {
+    const z = zWith(() =>
+      Promise.reject(
+        new Error(JSON.stringify({ message: 'x', code: 'TeableApiError', status: 403 })),
+      ),
+    );
+    await expect(perform(z, bundle)).rejects.toThrow(ExpiredAuthError);
+    await expect(perform(z, bundle)).rejects.toThrow(/reconnect your Teable account/i);
+  });
+
+  it('leaves every other failure alone', async () => {
+    const boom = new Error(JSON.stringify({ message: 'x', code: 'TeableApiError', status: 500 }));
+    await expect(
+      perform(
+        zWith(() => Promise.reject(boom)),
+        bundle,
+      ),
+    ).rejects.toThrow(boom);
+  });
+
+  it('maps bases to dropdown items on success', async () => {
+    const z = zWith(() =>
+      Promise.resolve({ data: [{ id: 'bse1', name: 'CRM', extra: 'ignored' }] }),
+    );
+    await expect(perform(z, bundle)).resolves.toEqual([{ id: 'bse1', name: 'CRM' }]);
+  });
+
+  it('tolerates an empty body', async () => {
+    await expect(
+      perform(
+        zWith(() => Promise.resolve({})),
+        bundle,
+      ),
+    ).resolves.toEqual([]);
   });
 });
 

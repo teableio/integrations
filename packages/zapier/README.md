@@ -110,6 +110,40 @@ https://zapier.com/dashboard/auth/oauth/return/App<appId>/
 and the app must grant the scopes the integration requests (see
 `SCOPES` in `src/authentication.ts`). Then connect an account in the Zap editor.
 
+### Releasing a new version
+
+Pushing to `main` runs `zapier push`, which **overwrites the same version** — fine
+while a version is unpublished, and blocked by a CI guard once it is promoted and
+has real users. When the guard trips, bump `version` in `package.json` and follow
+the full sequence; `push` alone leaves everyone on the old version.
+
+```bash
+npx zapier-platform versions               # confirm state + Zap Users
+# bump version in package.json, merge -> CI pushes the new version
+
+npx zapier-platform env:get <newversion>   # ← DO NOT SKIP (see below)
+npx zapier-platform promote <newversion>   # new users get it from here on
+npx zapier-platform migrate <old> <new> 100%   # move the users who already exist
+```
+
+Two traps, both silent:
+
+- **Env is per-version and does not follow a version bump.** A same-version push
+  preserves it, a new version starts from whatever is (not) set. Promoting a
+  version with no `CLIENT_ID` breaks OAuth for everyone, far worse than whatever
+  you were fixing. Always `env:get` first, and `env:set` the three vars if it
+  comes back empty.
+- **`promote` does not move existing users** — it only decides what new users
+  install. Without `migrate`, everyone already on the old version stays there,
+  which usually means they never receive the fix you just shipped.
+
+Changing `SCOPES` needs one more thing on top: scopes are frozen when a user
+authorizes, so `migrate` swaps their code but not their token. Every existing
+user has to reconnect before a newly-requested scope takes effect. `triggers/bases.ts`
+turns the resulting 403 into `ExpiredAuthError` so Zapier asks them to, instead of
+leaving the dropdown mysteriously empty — keep that pattern for any future scope
+that gates a dropdown.
+
 ## Testing
 
 ```bash

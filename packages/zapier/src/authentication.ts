@@ -20,8 +20,15 @@ const expiresAt = (expiresIn: number | undefined): number =>
 
 // Scopes requested from Teable (format: resource|action). Must be a subset of
 // what the OAuth App was granted in Teable → Settings → OAuth Apps.
+//
+// NOTE on `base|read_all`: the Base dropdown calls GET /api/base/access/all,
+// which the backend guards with `base|read_all` — NOT `base|read`. Requesting
+// only `base|read` makes that endpoint return 403 restricted_resource, so the
+// dropdown comes back empty and no Zap can be configured. `base|read` is kept
+// for the per-base endpoints (GET /api/base/:baseId and friends).
 const SCOPES = [
   'base|read',
+  'base|read_all',
   'table|read',
   'field|read',
   'view|read',

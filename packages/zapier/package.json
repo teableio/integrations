@@ -1,6 +1,6 @@
 {
   "name": "@teable/zapier",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Teable is a no-code database platform for building collaborative apps, managing structured data, and automating workflows.",
   "main": "dist/index.js",
   "private": true,
