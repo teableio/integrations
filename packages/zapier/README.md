@@ -119,20 +119,26 @@ the full sequence; `push` alone leaves everyone on the old version.
 
 ```bash
 npx zapier-platform versions               # confirm state + Zap Users
+# add a `## <newversion>` section to CHANGELOG.md   <- promote fails without it
 # bump version in package.json, merge -> CI pushes the new version
 
-npx zapier-platform env:get <newversion>   # ← DO NOT SKIP (see below)
+npx zapier-platform env:get <newversion>   # confirm the three vars carried over
 npx zapier-platform promote <newversion>   # new users get it from here on
 npx zapier-platform migrate <old> <new> 100%   # move the users who already exist
+npx zapier-platform jobs                   # migration is async, 5-10 min
 ```
 
-Two traps, both silent:
+Three things that are easy to get wrong:
 
-- **Env is per-version and does not follow a version bump.** A same-version push
-  preserves it, a new version starts from whatever is (not) set. Promoting a
-  version with no `CLIENT_ID` breaks OAuth for everyone, far worse than whatever
-  you were fixing. Always `env:get` first, and `env:set` the three vars if it
-  comes back empty.
+- **`promote` refuses to run without a `CHANGELOG.md` entry for the version.**
+  It is a hard failure, and the changelog is user-facing — Zapier shows it to
+  people using the integration. Zapier parses lines starting with `Update` or
+  `Fix` and links identifiers of the form `<trigger|create|search>/<key>`, so
+  name the operations you actually touched.
+- **Env is per-version.** A push does carry the current values onto the new
+  version (verified on the 1.0.0 → 1.1.0 release), but it is worth one
+  `env:get` before promoting anyway: promoting a version with no `CLIENT_ID`
+  breaks OAuth for everyone, which is far worse than whatever you were fixing.
 - **`promote` does not move existing users** — it only decides what new users
   install. Without `migrate`, everyone already on the old version stays there,
   which usually means they never receive the fix you just shipped.
